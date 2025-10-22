@@ -1,12 +1,21 @@
-package main
+package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
+	"reward-system-api/internal/service"
+
+	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
-// The writeJSON() method is a generic helper for writing JSON to a response
-func (app *application) writeJSON(w http.ResponseWriter, sCode int, data any, headers http.Header) error {
+type Application struct {
+	Logger       *slog.Logger
+	QuestService *service.QuestService
+	UserService  *service.UserService
+}
+
+func (app *Application) writeJSON(w http.ResponseWriter, sCode int, data any, headers http.Header) error {
 	marshalledJson, err := json.Marshal(data)
 
 	if err != nil {

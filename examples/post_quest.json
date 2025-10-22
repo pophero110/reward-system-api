@@ -1,0 +1,9 @@
+{
+  "board_id": "board-id-123",
+  "title": "My First Quest",
+  "description": "Testing HTTPie collection",
+  "due_date_time": "2025-10-23T12:00:00Z",
+  "comments": "Some comments",
+  "reward": "100 points",
+  "status": "open"
+}

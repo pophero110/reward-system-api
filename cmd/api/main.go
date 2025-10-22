@@ -7,57 +7,96 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/joho/godotenv"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
+	"reward-system-api/internal/api"
+	"reward-system-api/internal/model"
+	"reward-system-api/internal/repository"
+	"reward-system-api/internal/service"
 )
 
-const version = "0.0.1"
-
-type config struct {
-	port int
-}
-
-type application struct {
-	config config
-	logger *slog.Logger
-}
-
 func main() {
-
-	var cfg config
-
-	// Try to read environment variable for port (given by railway). Otherwise use default
-	port := os.Getenv("PORT")
-	intPort, err := strconv.Atoi(port)
-	if err != nil {
-		intPort = 4000
-	}
-
-	// Set the port to run the API on
-	cfg.port = intPort
-
-	// create the logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	// create the application
-	app := &application{
-		config: cfg,
-		logger: logger,
+	// Load environment variables
+	if err := godotenv.Load(); err != nil {
+		logger.Warn("⚠️ No .env file found — relying on system environment variables")
 	}
 
-	// create the server
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
-		IdleTimeout:  45 * time.Second,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
+	// Connect to PostgreSQL using GORM
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		logger.Error("❌ DATABASE_URL is not set")
+		os.Exit(1)
 	}
 
-	logger.Info("server started", "addr", srv.Addr)
+	db, err := connectGormDB(dsn, logger)
+	if err != nil {
+		logger.Error("❌ Database connection failed", "error", err)
+		os.Exit(1)
+	}
 
-	// Start the server
-	err = srv.ListenAndServe()
-	logger.Error(err.Error())
-	os.Exit(1)
+	// ✅ Auto-migrate your models
+	err = db.AutoMigrate(&model.Quest{}, &model.Board{}, &model.User{})
+	if err != nil {
+		logger.Error("❌ Migration failed", "error", err)
+		os.Exit(1)
+	}
 
+	// Build the application
+	questService := &service.QuestService{Logger: logger, Quests: &repository.QuestModel{DB: db}}
+	userService := &service.UserService{Logger: logger, Users: &repository.UserModel{DB: db}}
+	app := &api.Application{
+		Logger:       logger,
+		QuestService: questService,
+		UserService:  userService,
+	}
+
+	// Start http server
+	port := parsePort(os.Getenv("PORT"), 4000)
+	srv := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: app.Routes(), IdleTimeout: 45 * time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 10 * time.Second, ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError)}
+	logger.Info("✅ Server started", "addr", fmt.Sprintf(":%d", port))
+	if err := srv.ListenAndServe(); err != nil {
+		logger.Error("❌ Server error", "error", err)
+	}
+}
+
+// connectGormDB establishes a GORM connection and verifies it
+func connectGormDB(dsn string, logger *slog.Logger) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get generic DB handle: %w", err)
+	}
+
+	// Optional connection pool tuning
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(50)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	// Verify connection
+	if err := sqlDB.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	logger.Info("✅ Database connection established")
+	return db, nil
+}
+
+func parsePort(portStr string, defaultPort int) int {
+	if portStr == "" {
+		return defaultPort
+	}
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		return defaultPort
+	}
+	return port
 }
