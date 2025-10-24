@@ -49,10 +49,12 @@ func main() {
 	// Build the application
 	questService := &service.QuestService{Logger: logger, Quests: &repository.QuestModel{DB: db}}
 	userService := &service.UserService{Logger: logger, Users: &repository.UserModel{DB: db}}
+	boardService := &service.BoardService{Logger: logger, Boards: &repository.BoardModel{DB: db}}
 	app := &api.Application{
 		Logger:       logger,
 		QuestService: questService,
 		UserService:  userService,
+		BoardService: boardService,
 	}
 
 	// Start http server

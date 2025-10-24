@@ -31,16 +31,12 @@ func (app *Application) registerHandler(w http.ResponseWriter, r *http.Request) 
 	err := app.UserService.Create(input.Email, input.Password)
 	switch {
 	case errors.Is(err, service.ErrUserExists):
-		WriteErrorResponse(w, http.StatusBadRequest, err.Error())
+		writeJSONError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrServerError):
-		WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
 	case err != nil:
-		WriteErrorResponse(w, http.StatusInternalServerError, "unexpected error")
+		writeJSONError(w, http.StatusInternalServerError, "unexpected error")
 	default:
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status": "success",
-		})
+		writeJSON(w, http.StatusCreated, nil)
 	}
 }

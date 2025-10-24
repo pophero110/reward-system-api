@@ -13,6 +13,7 @@ type Application struct {
 	Logger       *slog.Logger
 	QuestService *service.QuestService
 	UserService  *service.UserService
+	BoardService *service.BoardService
 }
 
 func (app *Application) writeJSON(w http.ResponseWriter, sCode int, data any, headers http.Header) error {

@@ -21,8 +21,8 @@ func (service *QuestService) GetAll() ([]*model.Quest, error) {
 	return quests, nil
 }
 
-func (service *QuestService) Create(quest model.Quest) error {
-	if err := service.Quests.Insert(&quest); err != nil {
+func (service *QuestService) Create(quest *model.Quest) error {
+	if err := service.Quests.Insert(quest); err != nil {
 		return err
 	}
 	return nil

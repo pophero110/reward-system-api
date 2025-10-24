@@ -1,0 +1,16 @@
+{{ define "content" }}
+<button hx-get="/quests" hx-target="#quest-list" hx-swap="innerHTML">
+  Load Quests
+</button>
+
+<!-- Container for quest list -->
+<div id="quest-list">
+  <!-- HTMX will fill this -->
+</div>
+
+<!-- Add new quest form -->
+<form hx-post="/quests/create" hx-target="#quest-list" hx-swap="beforeend">
+  <input type="text" name="title" placeholder="Quest Title" required>
+  <button type="submit">Add Quest</button>
+</form>
+{{ end }}
