@@ -1,17 +1,15 @@
 package api
 
 import (
-	"net/http"
-	"text/template"
-
 	"github.com/julienschmidt/httprouter"
+	"html/template"
+	"net/http"
 )
 
-var tmpl = template.Must(template.ParseFiles("templates/index.html"))
-
+// HTML Response Experiment
 func (app *Application) indexHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("templates/index.html", "templates/quests.html"))
-	tmpl.ExecuteTemplate(w, "index.html", nil)
+	var tmpl = template.Must(template.ParseFiles("templates/layout.html", "templates/quests.html"))
+	tmpl.ExecuteTemplate(w, "layout.html", "This is layout html")
 }
 
 func (app *Application) questsListHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,16 +29,16 @@ func (app *Application) Routes() *httprouter.Router {
 	router := httprouter.New()
 
 	router.HandlerFunc(http.MethodGet, "/", app.indexHandler)
-	router.HandlerFunc(http.MethodGet, "/quests", app.questsListHandler)
 
-	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
+	router.HandlerFunc(http.MethodGet, "/healthcheck", app.healthcheckHandler)
 	// Quests
-	router.HandlerFunc(http.MethodGet, "/v1/quests", app.getQuestHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/quests", app.postQuestHandler)
+	router.HandlerFunc(http.MethodPost, "/quests", app.postQuestHandler)
+	router.HandlerFunc(http.MethodGet, "/quests", app.getQuestsHandler)
+	router.GET("/quests/:id", app.getQuestByIdHandler)
 	// Uesrs
-	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerHandler)
+	router.HandlerFunc(http.MethodPost, "/users", app.registerHandler)
 	// Boards
-	router.HandlerFunc(http.MethodPost, "/v1/boards", app.postBoardhandler)
+	router.HandlerFunc(http.MethodPost, "/boards", app.postBoardhandler)
 
 	return router
 }

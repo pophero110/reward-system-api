@@ -5,7 +5,10 @@ import (
 	"errors"
 	"net/http"
 	"reward-system-api/internal/model"
+	"strconv"
 	"time"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 // Input DTO
@@ -67,7 +70,7 @@ func validateQuestInput(input *QuestInput) error {
 // ----------------------
 
 // GET /quests
-func (app *Application) getQuestHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) getQuestsHandler(w http.ResponseWriter, r *http.Request) {
 	quests, err := app.QuestService.GetAll()
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "failed to fetch quests")
@@ -77,22 +80,63 @@ func (app *Application) getQuestHandler(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, mapQuestsToDTOs(quests))
 }
 
-// POST /quests
-func (app *Application) postQuestHandler(w http.ResponseWriter, r *http.Request) {
-	var input QuestInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid JSON")
+func (app *Application) getQuestByIdHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	idStr := ps.ByName("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	quest, err := app.QuestService.GetById(uint(id))
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "failed to fetch quests")
 		return
 	}
 
+	writeJSON(w, http.StatusOK, mapQuestToDTO(quest))
+}
+
+// POST /quests
+func (app *Application) postQuestHandler(w http.ResponseWriter, r *http.Request) {
+	var input QuestInput
+	ct := r.Header.Get("Content-Type")
+
+	switch {
+	case ct == "application/json" || ct == "application/json; charset=utf-8":
+		// Parse JSON body
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+	case ct == "application/x-www-form-urlencoded":
+		// Parse form data
+		if err := r.ParseForm(); err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid form data")
+			return
+		}
+		input.Title = r.FormValue("title")
+
+		// Optional: parse due date
+		if due := r.FormValue("due_date"); due != "" {
+			if t, err := time.Parse(time.RFC3339, due); err == nil {
+				input.DueDateTime = &t
+			}
+		}
+	default:
+		writeJSONError(w, http.StatusUnsupportedMediaType, "unsupported content type")
+		return
+	}
+
+	// Validate input
 	if err := validateQuestInput(&input); err != nil {
 		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	// Create quest
 	quest := &model.Quest{
-		BoardID:     input.BoardID,
-		CreatorID:   input.CreatorID,
+		BoardID:     uint(input.BoardID),
+		CreatorID:   uint(input.CreatorID),
 		Title:       input.Title,
 		Description: input.Description,
 		DueDateTime: input.DueDateTime,

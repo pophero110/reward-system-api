@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -57,9 +58,23 @@ func main() {
 		BoardService: boardService,
 	}
 
+	handler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"}, // your frontend URL
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+	}).Handler(app.Routes())
+
 	// Start http server
 	port := parsePort(os.Getenv("PORT"), 4000)
-	srv := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: app.Routes(), IdleTimeout: 45 * time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 10 * time.Second, ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError)}
+	srv := &http.Server{
+		Addr:         fmt.Sprintf(":%d", port),
+		Handler:      handler,
+		IdleTimeout:  45 * time.Second,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
+	}
 	logger.Info("✅ Server started", "addr", fmt.Sprintf(":%d", port))
 	if err := srv.ListenAndServe(); err != nil {
 		logger.Error("❌ Server error", "error", err)

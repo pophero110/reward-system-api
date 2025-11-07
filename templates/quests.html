@@ -1,16 +1,65 @@
 {{ define "content" }}
-<button hx-get="/quests" hx-target="#quest-list" hx-swap="innerHTML">
-  Load Quests
-</button>
 
-<!-- Container for quest list -->
-<div id="quest-list">
-  <!-- HTMX will fill this -->
-</div>
+<section class="quest-actions">
+  <!-- Load Quests Button -->
+  <button class="btn btn-primary" hx-get="/quests" hx-target="#quest-list" hx-swap="innerHTML">
+    Load Quests
+  </button>
+</section>
 
-<!-- Add new quest form -->
-<form hx-post="/quests/create" hx-target="#quest-list" hx-swap="beforeend">
-  <input type="text" name="title" placeholder="Quest Title" required>
-  <button type="submit">Add Quest</button>
-</form>
+<!-- Quest List Container -->
+<section id="quest-list" class="quest-list">
+  <!-- HTMX will populate this -->
+</section>
+
+<!-- Add New Quest Form -->
+<section class="quest-form">
+  <form hx-post="/quests" hx-target="#quest-list" hx-swap="beforeend">
+
+    <input type="text" name="title" placeholder="Quest Title" required class="input input-title">
+
+    <button type="submit" class="btn btn-success">Add Quest</button>
+  </form>
+</section>
+
+<style>
+  /* Container styling */
+  .quest-list {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+
+  /* Optional: form styling */
+  .quest-form form {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background-color: #3490dc;
+    color: #fff;
+  }
+
+  .btn-success {
+    background-color: #38c172;
+    color: #fff;
+  }
+
+  /* Input styling */
+  .input-title {
+    flex: 1;
+    padding: 0.5rem;
+  }
+</style>
+
 {{ end }}

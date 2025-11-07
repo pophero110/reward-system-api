@@ -21,6 +21,16 @@ func (service *QuestService) GetAll() ([]*model.Quest, error) {
 	return quests, nil
 }
 
+func (service *QuestService) GetById(id uint) (*model.Quest, error) {
+	quest, err := service.Quests.GetById(id)
+	if err != nil {
+		service.Logger.Error("failed to fetch quests", "error", err)
+		return nil, err
+	}
+
+	return quest, nil
+}
+
 func (service *QuestService) Create(quest *model.Quest) error {
 	if err := service.Quests.Insert(quest); err != nil {
 		return err

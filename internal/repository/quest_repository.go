@@ -22,6 +22,19 @@ func (m *QuestModel) GetAll() ([]*model.Quest, error) {
 	return quests, nil
 }
 
+func (m *QuestModel) GetById(id uint) (*model.Quest, error) {
+	var quest model.Quest
+
+	// Fetch quest by ID
+	if err := m.DB.
+		Where("id = ?", id).
+		First(&quest).Error; err != nil {
+		return nil, err
+	}
+
+	return &quest, nil
+}
+
 // Insert adds a new quest to the database and updates its ID and timestamps
 func (m *QuestModel) Insert(q *model.Quest) error {
 	if err := m.DB.Create(q).Error; err != nil {
